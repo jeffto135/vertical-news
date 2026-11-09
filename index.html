@@ -24,50 +24,55 @@
       background: rgba(0, 0, 0, 0.75);
     }
 
-    /* 核心軌道：字體加大、置中、極慢速平滑走字 */
-    #ticker {
+    /* 核心走字軌道：正向直立、單行、無縫銜接 */
+    #ticker-track {
       position: absolute;
       left: 0;
-      top: 1920px;
+      top: 0;
       width: 55px;
       writing-mode: vertical-rl;
       text-orientation: upright;
       white-space: nowrap !important;
-      max-height: none !important;
-      height: auto !important;
-      
       letter-spacing: 5px;
-      font-size: 40px; /* 字體加大至 30px */
+      font-size: 40px; /* 維持 40px 大字 */
       font-weight: 700;
       color: #FFFFFF;
       text-align: center;
-      /* 預設初速大幅放慢（150秒） */
-      animation: verticalScroll 150s linear infinite;
+      will-change: transform;
+    }
+
+    .news-group {
+      display: inline !important;
     }
 
     .news-item {
       display: inline !important;
       margin-bottom: 0;
-      padding-bottom: 120px; /* 每段新聞之間的間隔拉闊 */
+      padding-bottom: 140px; /* 每段新聞之間的適當間距 */
     }
 
-    /* 由 1080px 底部極慢速往頂部滑出 */
-    @keyframes verticalScroll {
+    /* 無縫循環核心：只滾動剛好一個 Group 的長度即重置，畫面永遠不留空 */
+    @keyframes seamlessScroll {
       0% {
-        top: 1080px;
         transform: translateY(0);
       }
       100% {
-        top: 0;
-        transform: translateY(-100%);
+        transform: translateY(var(--scroll-distance, -50%));
       }
     }
   </style>
 </head>
 <body>
   <div class="vertical-window">
-    <div id="ticker">
-      <span class="news-item">◆ 正在加載即時新聞...</span>
+    <div id="ticker-track">
+      <!-- Group 1 -->
+      <span id="group1" class="news-group">
+        <span class="news-item">◆ 正在加載即時新聞...</span>
+      </span>
+      <!-- Group 2（緊接在 Group 1 後面，達成無縫咬合） -->
+      <span id="group2" class="news-group">
+        <span class="news-item">◆ 正在加載即時新聞...</span>
+      </span>
     </div>
   </div>
 
@@ -86,7 +91,7 @@
           }
         }
       } catch (e) {
-        console.warn('API 1 error, trying fallback...', e);
+        console.warn('API 1 fallback...', e);
       }
 
       if (items.length === 0) {
@@ -105,12 +110,12 @@
       }
 
       if (items.length > 0) {
-        const container = document.getElementById('ticker');
-        container.innerHTML = '';
+        const g1 = document.getElementById('group1');
+        const g2 = document.getElementById('group2');
+        const track = document.getElementById('ticker-track');
 
+        let htmlContent = '';
         items.slice(0, 15).forEach(title => {
-          const span = document.createElement('span');
-          span.className = 'news-item';
           const cleanTitle = title
             .replace(/,/g, '，')
             .replace(/:/g, '：')
@@ -118,18 +123,28 @@
             .replace(/\?/g, '？')
             .replace(/\s+/g, ' ');
 
-          span.innerText = '◆ ' + cleanTitle + '  ';
-          container.appendChild(span);
+          htmlContent += '<span class="news-item">◆ ' + cleanTitle + '  </span>';
         });
 
-        // 慢速計算公式：每 10 個字約需 6.5 秒，速度極之平穩易讀
-        const totalChars = container.innerText.length;
-        const duration = Math.max(120, Math.round(totalChars * 0.65));
-        container.style.animationDuration = duration + 's';
+        // 兩組放入相同新聞
+        g1.innerHTML = htmlContent;
+        g2.innerHTML = htmlContent;
+
+        // 計算滾動距離：剛好等於 Group 1 的精確垂直像素高度
+        setTimeout(() => {
+          const g1Height = g1.offsetHeight || g1.getBoundingClientRect().height;
+          track.style.setProperty('--scroll-distance', `-${g1Height}px`);
+
+          // 速度控制：40px 字體建議每字約 0.65 秒，平穩好讀
+          const totalChars = g1.innerText.length;
+          const duration = Math.max(120, Math.round(totalChars * 0.65));
+          track.style.animation = `seamlessScroll ${duration}s linear infinite`;
+        }, 150);
       }
     }
 
     loadRSS();
+    // 每 5 分鐘自動刷新一次最新新聞
     setInterval(loadRSS, 300000);
   </script>
 </body>
