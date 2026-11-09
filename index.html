@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -18,38 +18,36 @@
       align-items: center;
     }
 
-    /* 直向長條容器 */
-    .vertical-container {
-      width: 100%;
-      height: 100%;
+    /* 限制只容納單行寬度的垂直視窗 */
+    .vertical-window {
+      width: 60px; /* 單行寬度，文字不會換行並排 */
+      height: 100vh;
       position: relative;
       overflow: hidden;
       display: flex;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.7); /* 半透明黑底 */
     }
 
-    /* 核心直立走字軌道 */
+    /* 垂直走字軌道：正向直立、強制單直行 */
     .ticker-track {
       position: absolute;
-      /* 關鍵設定：文字由上而下，所有中文字保持直立正向，不再側躺 */
+      top: 0;
       writing-mode: vertical-rl;
       text-orientation: upright;
       letter-spacing: 5px;
       font-size: 26px;
       font-weight: 600;
-      white-space: nowrap;
-      display: flex;
-      flex-direction: column;
-      animation: scrollUp 50s linear infinite;
+      white-space: nowrap; /* 絕對不換行，只保持一直條 */
+      display: inline-block;
+      animation: scrollUp 90s linear infinite; /* 可按長度調整秒數 */
     }
 
     .news-item {
-      margin-bottom: 90px; /* 每段新聞之間的間距 */
-      display: inline-block;
+      display: inline;
+      margin-bottom: 120px; /* 每段新聞之間的垂直留白 */
     }
 
-    /* 由下往上平滑滾動 */
+    /* 由畫面最下方垂直平滑向上滾動 */
     @keyframes scrollUp {
       0% {
         transform: translateY(100vh);
@@ -61,19 +59,17 @@
   </style>
 </head>
 <body>
-  <div class="vertical-container">
+  <div class="vertical-window">
     <div id="ticker" class="ticker-track">
-      <span class="news-item">正在加載即時新聞...</span>
+      <span class="news-item">◆ 正在加載即時新聞...</span>
     </div>
   </div>
 
   <script>
-    // 你的 RTHK 香港電台即時本地新聞 RSS
     const RTHK_RSS = 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml';
 
     async function loadRSS() {
       try {
-        // 透過 rss2json API 轉換，解決 BrightSign 跨域 CORS 問題
         const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RTHK_RSS) + '&_t=' + Date.now());
         if (!res.ok) throw new Error('RSS fetch failed');
         const data = await res.json();
@@ -82,10 +78,12 @@
           const container = document.getElementById('ticker');
           container.innerHTML = '';
 
+          // 取 20 則最新即時新聞
           data.items.slice(0, 20).forEach(item => {
             const span = document.createElement('span');
             span.className = 'news-item';
-            // 將半形標點轉全形，直排視覺更工整
+
+            // 將半形標點轉全形，直排視覺更端正
             const cleanTitle = item.title
               .replace(/,/g, '，')
               .replace(/:/g, '：')
@@ -103,7 +101,7 @@
     }
 
     loadRSS();
-    // 每 5 分鐘自動抓取最新 RTHK 新聞
+    // 每 5 分鐘自動更新新聞列表
     setInterval(loadRSS, 300000);
   </script>
 </body>
