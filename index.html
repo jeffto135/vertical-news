@@ -7,7 +7,6 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     
-    /* 鎖死為 55px 寬、1080px 高 */
     html, body {
       width: 55px;
       height: 1080px;
@@ -16,41 +15,43 @@
       font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang HK", sans-serif;
     }
 
-    /* 滿版 55px × 1080px 直立視窗 */
+    /* 55px 寬、1080px 高視窗 */
     .vertical-window {
       width: 55px;
       height: 1080px;
       position: relative;
       overflow: hidden;
-      display: flex;
-      justify-content: center;
-      background: rgba(0, 0, 0, 0.75); /* 半透明黑底 */
+      background: rgba(0, 0, 0, 0.75);
     }
 
-    /* 單行走字軌道：正向直立、置中 */
+    /* 核心軌道：鎖死單直行，禁止折行產生第二列 */
     #ticker {
       position: absolute;
+      left: 0;
       top: 1080px;
       width: 55px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      /* 關鍵：強制不折行 */
       writing-mode: vertical-rl;
       text-orientation: upright;
-      letter-spacing: 5px;
-      font-size: 24px; /* 適合 55px 寬度的最佳字級 */
+      white-space: nowrap !important;
+      max-height: none !important;
+      height: auto !important;
+      
+      letter-spacing: 4px;
+      font-size: 24px;
       font-weight: 600;
       color: #FFFFFF;
-      white-space: nowrap;
+      text-align: center;
       animation: verticalScroll 60s linear infinite;
     }
 
     .news-item {
-      display: inline-block;
-      margin-bottom: 90px; /* 每則新聞的垂直間隔 */
+      display: inline !important; /* 確保所有新聞連續串接在同一條線上 */
+      margin-bottom: 0;
+      padding-bottom: 90px; /* 每段新聞之間的垂直留白 */
     }
 
-    /* 由 1080px 底部進場，往上滑出至頂端 */
+    /* 由 1080px 底端單行垂直滑出頂端 */
     @keyframes verticalScroll {
       0% {
         top: 1080px;
@@ -66,7 +67,7 @@
 <body>
   <div class="vertical-window">
     <div id="ticker">
-      <div class="news-item">◆ 正在加載即時新聞...</div>
+      <span class="news-item">◆ 正在加載即時新聞...</span>
     </div>
   </div>
 
@@ -76,7 +77,6 @@
     async function loadRSS() {
       let items = [];
 
-      // 嘗試代理 1：rss2json
       try {
         const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RTHK_RSS) + '&_t=' + Date.now());
         if (res.ok) {
@@ -89,7 +89,6 @@
         console.warn('API 1 error, trying fallback...', e);
       }
 
-      // 嘗試代理 2：allorigins (備援)
       if (items.length === 0) {
         try {
           const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(RTHK_RSS) + '&_t=' + Date.now());
@@ -105,14 +104,13 @@
         }
       }
 
-      // 渲染新聞
       if (items.length > 0) {
         const container = document.getElementById('ticker');
         container.innerHTML = '';
 
         items.slice(0, 15).forEach(title => {
-          const div = document.createElement('div');
-          div.className = 'news-item';
+          const span = document.createElement('span');
+          span.className = 'news-item';
           const cleanTitle = title
             .replace(/,/g, '，')
             .replace(/:/g, '：')
@@ -120,11 +118,10 @@
             .replace(/\?/g, '？')
             .replace(/\s+/g, ' ');
 
-          div.innerText = '◆ ' + cleanTitle;
-          container.appendChild(div);
+          span.innerText = '◆ ' + cleanTitle + '  ';
+          container.appendChild(span);
         });
 
-        // 依據文字長度平穩調整滾動秒數
         const totalChars = container.innerText.length;
         const duration = Math.max(45, Math.round(totalChars * 0.28));
         container.style.animationDuration = duration + 's';
@@ -132,7 +129,6 @@
     }
 
     loadRSS();
-    // 每 5 分鐘刷新最新新聞
     setInterval(loadRSS, 300000);
   </script>
 </body>
