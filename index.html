@@ -6,49 +6,54 @@
   <title>Vertical News Ticker</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    /* 鎖死為 55px 寬、1080px 高 */
     html, body {
-      width: 100%;
-      height: 100%;
+      width: 55px;
+      height: 1080px;
       background: transparent;
       overflow: hidden;
       font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang HK", sans-serif;
     }
 
-    /* 置中單行視窗 */
+    /* 滿版 55px × 1080px 直立視窗 */
     .vertical-window {
-      width: 100%;
-      height: 100vh;
+      width: 55px;
+      height: 1080px;
       position: relative;
       overflow: hidden;
       display: flex;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.7);
+      background: rgba(0, 0, 0, 0.75); /* 半透明黑底 */
     }
 
-    /* 正向直立單行走字軌道 */
+    /* 單行走字軌道：正向直立、置中 */
     #ticker {
       position: absolute;
-      top: 100%;
+      top: 1080px;
+      width: 55px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       writing-mode: vertical-rl;
       text-orientation: upright;
-      letter-spacing: 6px;
-      font-size: 26px;
+      letter-spacing: 5px;
+      font-size: 24px; /* 適合 55px 寬度的最佳字級 */
       font-weight: 600;
       color: #FFFFFF;
       white-space: nowrap;
-      height: auto;
       animation: verticalScroll 60s linear infinite;
     }
 
     .news-item {
       display: inline-block;
-      margin-bottom: 80px; /* 每則新聞的垂直間隔 */
+      margin-bottom: 90px; /* 每則新聞的垂直間隔 */
     }
 
-    /* 由底部滑入，往頂部滑出 */
+    /* 由 1080px 底部進場，往上滑出至頂端 */
     @keyframes verticalScroll {
       0% {
-        top: 100vh;
+        top: 1080px;
         transform: translateY(0);
       }
       100% {
@@ -61,7 +66,7 @@
 <body>
   <div class="vertical-window">
     <div id="ticker">
-      <div class="news-item">◆ 正在加載香港電台即時新聞...</div>
+      <div class="news-item">◆ 正在加載即時新聞...</div>
     </div>
   </div>
 
@@ -119,9 +124,9 @@
           container.appendChild(div);
         });
 
-        // 根據文字長度動態調整動畫時間（每 10 個字約 3 秒，保持平穩閱讀速度）
+        // 依據文字長度平穩調整滾動秒數
         const totalChars = container.innerText.length;
-        const duration = Math.max(40, Math.round(totalChars * 0.3));
+        const duration = Math.max(45, Math.round(totalChars * 0.28));
         container.style.animationDuration = duration + 's';
       }
     }
