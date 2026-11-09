@@ -24,34 +24,34 @@
       background: rgba(0, 0, 0, 0.75);
     }
 
-    /* 核心軌道：鎖死單直行，禁止折行產生第二列 */
+    /* 核心軌道：字體加大、置中、極慢速平滑走字 */
     #ticker {
       position: absolute;
       left: 0;
       top: 1080px;
       width: 55px;
-      /* 關鍵：強制不折行 */
       writing-mode: vertical-rl;
       text-orientation: upright;
       white-space: nowrap !important;
       max-height: none !important;
       height: auto !important;
       
-      letter-spacing: 4px;
-      font-size: 24px;
-      font-weight: 600;
+      letter-spacing: 5px;
+      font-size: 30px; /* 字體加大至 30px */
+      font-weight: 700;
       color: #FFFFFF;
       text-align: center;
-      animation: verticalScroll 60s linear infinite;
+      /* 預設初速大幅放慢（150秒） */
+      animation: verticalScroll 150s linear infinite;
     }
 
     .news-item {
-      display: inline !important; /* 確保所有新聞連續串接在同一條線上 */
+      display: inline !important;
       margin-bottom: 0;
-      padding-bottom: 90px; /* 每段新聞之間的垂直留白 */
+      padding-bottom: 120px; /* 每段新聞之間的間隔拉闊 */
     }
 
-    /* 由 1080px 底端單行垂直滑出頂端 */
+    /* 由 1080px 底部極慢速往頂部滑出 */
     @keyframes verticalScroll {
       0% {
         top: 1080px;
@@ -122,8 +122,9 @@
           container.appendChild(span);
         });
 
+        // 慢速計算公式：每 10 個字約需 6.5 秒，速度極之平穩易讀
         const totalChars = container.innerText.length;
-        const duration = Math.max(45, Math.round(totalChars * 0.28));
+        const duration = Math.max(120, Math.round(totalChars * 0.65));
         container.style.animationDuration = duration + 's';
       }
     }
