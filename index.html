@@ -6,53 +6,53 @@
   <title>Vertical News Ticker</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body {
+    html, body {
+      width: 100%;
+      height: 100%;
       background: transparent;
-      font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang HK", sans-serif;
-      color: #FFFFFF;
       overflow: hidden;
-      width: 100vw;
-      height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
+      font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", "PingFang HK", sans-serif;
     }
 
-    /* 限制只容納單行寬度的垂直視窗 */
+    /* 置中單行視窗 */
     .vertical-window {
-      width: 60px; /* 單行寬度，文字不會換行並排 */
+      width: 100%;
       height: 100vh;
       position: relative;
       overflow: hidden;
       display: flex;
       justify-content: center;
+      background: rgba(0, 0, 0, 0.7);
     }
 
-    /* 垂直走字軌道：正向直立、強制單直行 */
-    .ticker-track {
+    /* 正向直立單行走字軌道 */
+    #ticker {
       position: absolute;
-      top: 0;
+      top: 100%;
       writing-mode: vertical-rl;
       text-orientation: upright;
-      letter-spacing: 5px;
+      letter-spacing: 6px;
       font-size: 26px;
       font-weight: 600;
-      white-space: nowrap; /* 絕對不換行，只保持一直條 */
-      display: inline-block;
-      animation: scrollUp 90s linear infinite; /* 可按長度調整秒數 */
+      color: #FFFFFF;
+      white-space: nowrap;
+      height: auto;
+      animation: verticalScroll 60s linear infinite;
     }
 
     .news-item {
-      display: inline;
-      margin-bottom: 120px; /* 每段新聞之間的垂直留白 */
+      display: inline-block;
+      margin-bottom: 80px; /* 每則新聞的垂直間隔 */
     }
 
-    /* 由畫面最下方垂直平滑向上滾動 */
-    @keyframes scrollUp {
+    /* 由底部滑入，往頂部滑出 */
+    @keyframes verticalScroll {
       0% {
-        transform: translateY(100vh);
+        top: 100vh;
+        transform: translateY(0);
       }
       100% {
+        top: 0;
         transform: translateY(-100%);
       }
     }
@@ -60,8 +60,8 @@
 </head>
 <body>
   <div class="vertical-window">
-    <div id="ticker" class="ticker-track">
-      <span class="news-item">◆ 正在加載即時新聞...</span>
+    <div id="ticker">
+      <div class="news-item">◆ 正在加載香港電台即時新聞...</div>
     </div>
   </div>
 
@@ -69,39 +69,65 @@
     const RTHK_RSS = 'https://rthk.hk/rthk/news/rss/c_expressnews_clocal.xml';
 
     async function loadRSS() {
+      let items = [];
+
+      // 嘗試代理 1：rss2json
       try {
         const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(RTHK_RSS) + '&_t=' + Date.now());
-        if (!res.ok) throw new Error('RSS fetch failed');
-        const data = await res.json();
-
-        if (data.items && data.items.length > 0) {
-          const container = document.getElementById('ticker');
-          container.innerHTML = '';
-
-          // 取 20 則最新即時新聞
-          data.items.slice(0, 20).forEach(item => {
-            const span = document.createElement('span');
-            span.className = 'news-item';
-
-            // 將半形標點轉全形，直排視覺更端正
-            const cleanTitle = item.title
-              .replace(/,/g, '，')
-              .replace(/:/g, '：')
-              .replace(/!/g, '！')
-              .replace(/\?/g, '？')
-              .replace(/\s+/g, ' ');
-
-            span.innerText = '◆ ' + cleanTitle;
-            container.appendChild(span);
-          });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            items = data.items.map(i => i.title);
+          }
         }
       } catch (e) {
-        console.warn('RSS load retry...', e);
+        console.warn('API 1 error, trying fallback...', e);
+      }
+
+      // 嘗試代理 2：allorigins (備援)
+      if (items.length === 0) {
+        try {
+          const res = await fetch('https://api.allorigins.win/get?url=' + encodeURIComponent(RTHK_RSS) + '&_t=' + Date.now());
+          if (res.ok) {
+            const data = await res.json();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(data.contents, 'text/xml');
+            const titleNodes = xml.querySelectorAll('item > title');
+            titleNodes.forEach(node => items.push(node.textContent));
+          }
+        } catch (e) {
+          console.warn('API 2 error:', e);
+        }
+      }
+
+      // 渲染新聞
+      if (items.length > 0) {
+        const container = document.getElementById('ticker');
+        container.innerHTML = '';
+
+        items.slice(0, 15).forEach(title => {
+          const div = document.createElement('div');
+          div.className = 'news-item';
+          const cleanTitle = title
+            .replace(/,/g, '，')
+            .replace(/:/g, '：')
+            .replace(/!/g, '！')
+            .replace(/\?/g, '？')
+            .replace(/\s+/g, ' ');
+
+          div.innerText = '◆ ' + cleanTitle;
+          container.appendChild(div);
+        });
+
+        // 根據文字長度動態調整動畫時間（每 10 個字約 3 秒，保持平穩閱讀速度）
+        const totalChars = container.innerText.length;
+        const duration = Math.max(40, Math.round(totalChars * 0.3));
+        container.style.animationDuration = duration + 's';
       }
     }
 
     loadRSS();
-    // 每 5 分鐘自動更新新聞列表
+    // 每 5 分鐘刷新最新新聞
     setInterval(loadRSS, 300000);
   </script>
 </body>
